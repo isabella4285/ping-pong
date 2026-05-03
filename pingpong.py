@@ -1,10 +1,19 @@
 from PPlay.window import *
 from PPlay.sprite import *
 from PPlay.collision import *
+import pygame
 
 em_jogo = True
 wx, wy = 1000, 700
 pontos = [0, 0] #jogador, ia
+pygame.mixer.init()
+colisao_som = pygame.mixer.Sound("pong.mp3")
+buzzer_som = pygame.mixer.Sound("buzzer.mp3")
+get_piece = pygame.mixer.Sound("get_piece.mp3")
+
+colisoes = 0
+
+#variacoes = [0, 10, 20, 50]
 
 janela = Window(wx, wy)
 janela.set_title("ping pong")
@@ -50,6 +59,7 @@ while True:
 
         #verificar pontos depois q a bola sai da tela
         if bola.x > wx: #direita-> ponto do jogador
+            get_piece.play()
             pontos[0] += 1
             print(pontos)
             em_jogo = False
@@ -57,6 +67,7 @@ while True:
             barra1.set_position(0, wy/2-bola.height/2)
 
         elif bola.x < -bola.width:
+            buzzer_som.play()
             pontos[1] += 1
             print(pontos)
             em_jogo = False
@@ -77,20 +88,31 @@ while True:
         
         
         #movendo a barra direita - ia
-        if bola.y>barra2.width-bola.height and bola.y<(wy-barra2.height/2)-barra2.height/2:
-            barra2.y = bola.y 
+        velocidade_ia = 350  # velocidade da IA, um pouco menor que a bola
+        if barra2.y + barra2.height/2 < bola.y and barra2.y < wy - barra2.height:
+            barra2.y += velocidade_ia * janela.delta_time()
+        elif barra2.y + barra2.height/2 > bola.y and barra2.y > 0:
+            barra2.y -= velocidade_ia * janela.delta_time()
+        
+        
 
         #adicionando colisao
         if Collision.collided(bola, barra2) and not colidiu_barra:
             #corrigir a posicao para nao ficar entrando na barra
             bola.x = barra2.x - bola.width
             velx *= -1
+            colisoes += 1
+            colisao_som.play()
             colidiu_barra = True
             
         elif Collision.collided(bola, barra1) and not colidiu_barra:
             #corrige a posicao para nao ficar entrando na barra
             bola.x = barra1.x + barra1.width
             velx *= -1
+            colisoes +=1
+            colisao_som.play()
+            #adicionar som de colisao, o pong.mp3
+            
             colidiu_barra = True
             
         else:
@@ -99,12 +121,18 @@ while True:
 
     else: #espera espaco para resetar
         if janela.get_keyboard().key_pressed("space"):
+            #colocar musica de bzzer
             bola.set_position((wx)/2-bola.width/2, (wy)/2-bola.height/2)
             barra1.set_position(0, wy/2-barra1.height/2)
             velx, vely = 300, 300
             em_jogo = True
             colidiu_barra = False
             colidiu_parede = False
+
+    if colisoes >= 3:
+        velx *= 1.1
+        vely *= 1.1
+        colisoes = 0
 
     #desenhar tudo
     bola.draw()
